@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deteksi Penyakit Padi</title>
+</head>
+<body>
+    <h1>Deteksi Penyakit Padi</h1>
+    <form action="/" method="POST" enctype="multipart/form-data">
+        <label for="file">Upload Gambar:</label>
+        <input type="file" name="file" accept="image/*" required>
+        <button type="submit">Unggah dan Deteksi</button>
+    </form>
+    {% if uploaded_image %}
+        <h2>Hasil Deteksi</h2>
+        <img src="{{ uploaded_image }}" alt="Uploaded Image" style="max-width: 300px;">
+        <p>Prediksi: {{ prediction }}</p>
+        <p>Kepercayaan: {{ confidence|round(2) }}%</p>
+    {% endif %}
+</body>
+</html>
