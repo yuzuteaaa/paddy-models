@@ -36,6 +36,16 @@ class_labels = [
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def process_image(img_path):
+    img = image.load_img(img_path, target_size=(224, 224))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array /= 255.0  # Normalisasi
+    predictions = model.predict(img_array)
+    predicted_class = class_labels[np.argmax(predictions)]
+    confidence = float(np.max(predictions) * 100)  # Konversi ke float
+    return predicted_class, confidence
+
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'file' not in request.files:
@@ -50,9 +60,11 @@ def predict():
         predicted_class, confidence = process_image(file_path)
         return jsonify({
             'prediction': predicted_class,
-            'confidence': confidence
+            'confidence': float(confidence)  # Konversi ke float
         })
     return jsonify({'error': 'Invalid file'}), 400
+
+
 
 
 # Fungsi untuk memproses gambar
