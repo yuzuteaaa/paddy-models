@@ -4,19 +4,124 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deteksi Penyakit Padi</title>
+
+    <!-- Add CSS Styling -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 30px;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        label {
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .result {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .result img {
+            max-width: 300px;
+            border-radius: 8px;
+        }
+
+        .result p {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+
+        .result .confidence {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .update-link {
+            margin-top: 30px;
+            font-size: 16px;
+            color: #4CAF50;
+        }
+
+        .update-link a {
+            text-decoration: none;
+            color: #4CAF50;
+        }
+
+        .update-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
     <h1>Deteksi Penyakit Padi</h1>
+
+    <!-- Form for image upload and disease detection -->
     <form action="/" method="POST" enctype="multipart/form-data">
         <label for="file">Upload Gambar:</label>
         <input type="file" name="file" accept="image/*" required>
         <button type="submit">Unggah dan Deteksi</button>
     </form>
+
     {% if uploaded_image %}
-        <h2>Hasil Deteksi</h2>
-        <img src="{{ uploaded_image }}" alt="Uploaded Image" style="max-width: 300px;">
-        <p>Prediksi: {{ prediction }}</p>
-        <p>Kepercayaan: {{ confidence|round(2) }}%</p>
+        <div class="result">
+            <h2>Hasil Deteksi</h2>
+            <img src="{{ uploaded_image }}" alt="Uploaded Image">
+            <p>Prediksi: {{ prediction }}</p>
+            <p class="confidence">Kepercayaan: {{ confidence|round(2) }}%</p>
+        </div>
     {% endif %}
+
+    <!-- Link to update API key page -->
+    <div class="update-link">
+        <a href="{{ url_for('update_api_key_form') }}">Update API Key</a>
+    </div>
+
 </body>
 </html>

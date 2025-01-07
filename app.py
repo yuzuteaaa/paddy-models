@@ -1,50 +1,106 @@
-from flask import Flask, request, render_template, redirect, url_for, jsonify
-import os
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from werkzeug.utils import secure_filename
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+import os
+import joblib
+from flask_sqlalchemy import SQLAlchemy
+from skimage.io import imread
+from skimage.transform import resize
 import numpy as np
 
 # Inisialisasi Flask
 app = Flask(__name__)
 
-# Konfigurasi folder untuk unggahan
+# Setup koneksi ke MySQL
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/api_key'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Folder upload
 UPLOAD_FOLDER = 'static/uploads/'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Load model
-model_path = "model/paddy_model.h5"
-model = load_model(model_path)
+# Load model dan kategori
+model_path = "model/model_normal.pkl"
+model = joblib.load(model_path)
 
-# Label untuk prediksi
-class_labels = [
-    'bacterial_leaf_blight',
-    'bacterial_leaf_streak',
-    'bacterial_panicle_blight',
-    'blast',
-    'brown_spot',
-    'dead_heart',
-    'downy_mildew',
-    'hispa',
-    'normal',
-    'tungro'
-]
+Categories = ['blast', 'blight', 'tungro', 'normal']
 
+class APIKey(db.Model):
+    __tablename__ = 'api_key'
+    id = db.Column(db.Integer, primary_key=True)
+    key_name = db.Column(db.String(100), unique=True, nullable=False)
+    key_value = db.Column(db.String(500), nullable=False)
+
+    def __repr__(self):
+        return f"APIKey('{self.key_name}', '{self.key_value}')"
+
+# Buat database
+with app.app_context():
+    db.create_all()
+
+# Fungsi utilitas
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def process_image(img_path):
-    img = image.load_img(img_path, target_size=(224, 224))
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array /= 255.0  # Normalisasi
-    predictions = model.predict(img_array)
-    predicted_class = class_labels[np.argmax(predictions)]
-    confidence = float(np.max(predictions) * 100)  # Konversi ke float
-    return predicted_class, confidence
+    img = imread(img_path)
+    img_resized = resize(img, (150, 150, 3))
+    img_flattened = img_resized.flatten().reshape(1, -1)
+    predicted_class = model.predict(img_flattened)[0]
+    probabilities = model.predict_proba(img_flattened)[0]
+
+    predicted_label = Categories[predicted_class]
+    confidence = float(max(probabilities) * 100)
+    return predicted_label, confidence
+
+# Routes Flask
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            predicted_class, confidence = process_image(file_path)
+            return render_template(
+                'index.html',
+                uploaded_image=file_path,
+                prediction=predicted_class,
+                confidence=confidence
+            )
+    return render_template('index.html')
+
+@app.route('/get_api_keys', methods=['GET'])
+def get_api_keys():
+    api_keys = APIKey.query.all()
+    keys = {key.key_name: key.key_value for key in api_keys}
+    return jsonify(keys)
+
+@app.route('/update_api_key', methods=['GET', 'POST'])
+def update_api_key_form():
+    if request.method == 'POST':
+        key_name = request.form['key_name']
+        new_key_value = request.form['key_value']
+
+        if not key_name or not new_key_value:
+            return jsonify({'error': 'Key name and new key value are required'}), 400
+
+        api_key = APIKey.query.filter_by(key_name=key_name).first()
+
+        if api_key:
+            api_key.key_value = new_key_value
+            db.session.commit()
+            return jsonify({'message': f'API key {key_name} updated successfully'}), 200
+        else:
+            return jsonify({'error': 'API key not found'}), 404
+
+    return render_template('update_api_key.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -60,48 +116,9 @@ def predict():
         predicted_class, confidence = process_image(file_path)
         return jsonify({
             'prediction': predicted_class,
-            'confidence': float(confidence)  # Konversi ke float
+            'confidence': float(confidence)
         })
     return jsonify({'error': 'Invalid file'}), 400
 
-
-
-
-# Fungsi untuk memproses gambar
-def process_image(img_path):
-    img = image.load_img(img_path, target_size=(224, 224))
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array /= 255.0  # Normalisasi
-    predictions = model.predict(img_array)
-    predicted_class = class_labels[np.argmax(predictions)]
-    confidence = np.max(predictions) * 100
-    return predicted_class, confidence
-
-# Route untuk halaman utama
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        # Periksa apakah file diunggah
-        if 'file' not in request.files:
-            return redirect(request.url)
-        file = request.files['file']
-        if file.filename == '':
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            # Prediksi gambar
-            predicted_class, confidence = process_image(file_path)
-            return render_template(
-                'index.html',
-                uploaded_image=file_path,
-                prediction=predicted_class,
-                confidence=confidence
-            )
-    return render_template('index.html')
-
-# Jalankan aplikasi
 if __name__ == '__main__':
     app.run(debug=True)

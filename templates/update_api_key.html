@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update API Key</title>
+
+    <!-- Simple CSS styling -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 30px;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        label {
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        input[type="text"] {
+            padding: 5px;
+            font-size: 12px;
+            margin-bottom: 20px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .message {
+            font-size: 18px;
+            color: #4CAF50;
+            margin-top: 20px;
+        }
+
+        .message.error {
+            color: red;
+        }
+
+        .update-link {
+            margin-top: 30px;
+            font-size: 16px;
+            color: #4CAF50;
+            text-align: center; /* Center the link below the form */
+        }
+
+        .update-link a {
+            text-decoration: none;
+            color: #4CAF50;
+        }
+
+        .update-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div >
+    <form action="/update_api_key" method="POST">
+        <h2>Update API Key</h2>
+
+        <label for="key_name">API Key Name:</label>
+        <input type="text" name="key_name" required placeholder="e.g., GEMINI_API, OPEN_WEATHER_API, STORE_API">
+
+        <label for="key_value">New API Key Value:</label>
+        <input type="text" name="key_value" required placeholder="Enter the new API key value">
+
+        <button type="submit">Update API Key</button>
+    </form>
+
+    {% if message %}
+        <p class="message">{{ message }}</p>
+    {% elif error %}
+        <p class="message error">{{ error }}</p>
+    {% endif %}
+
+    <!-- Link to go back to the main page -->
+    <div class="update-link">
+        <a href="{{ url_for('index') }}">Back to Home</a>
+    </div>
+</div>
+
+</body>
+</html>
